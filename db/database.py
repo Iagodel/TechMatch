@@ -1,31 +1,18 @@
 from pymongo import MongoClient
 from datetime import datetime
-import uuid
+from uuid import UUID
+from typing import List, Optional, Dict
 
-# Conectando ao MongoDB (ajuste a URL se usar MongoDB Atlas)
-client = MongoClient("mongodb://localhost:27017/")
 
-# Selecionando o banco e a coleção
-db = client["logs_curriculos"]
-colecao = db["executions"]
+class DataBaseConnection:
+    def __init__(self, uri="mongodb://localhost:27017/", nome_banco="logs_curriculos", nome_colecao="executions"):
+        self.cliente = MongoClient(uri)
+        self.banco = self.cliente[nome_banco]
+        self.colecao = self.banco[nome_colecao]
 
-# Criando um log de teste
-log = {
-    "request_id": str(uuid.uuid4()),
-    "user_id": "fabio01",
-    "timestamp": datetime.utcnow().isoformat(),
-    "query": "Engenheiro de Software com Python e Docker",
-    "resultado": [
-        {"arquivo": "curriculo_1.pdf", "score": 0.92},
-        {"arquivo": "curriculo_3.pdf", "score": 0.89}
-    ]
-}
 
-# Inserindo no Mongo
-insert_result = colecao.insert_one(log)
-print(f"\n✅ Log inserido com _id: {insert_result.inserted_id}")
+    def insert(self, dados):
+        self.colecao.insert_one(dados)
 
-# Buscando todos os logs
-print("\n📋 Logs armazenados no banco:\n")
-for doc in colecao.find():
-    print(doc)
+    def getAll(self):
+        return list(self.colecao.find())
