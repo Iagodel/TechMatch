@@ -4,7 +4,6 @@ from typing import List, Optional
 import uvicorn
 from uuid import UUID
 
-
 # Criar instância do FastAPI
 app = FastAPI(
     title="API TechMatch",
