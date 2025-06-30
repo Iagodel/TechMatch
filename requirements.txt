@@ -3,3 +3,8 @@ uvicorn[standard]
 pydantic
 pymongo
 python-multipart
+torch
+easyocr
+transformers
+pdf2image
+poppler-utils

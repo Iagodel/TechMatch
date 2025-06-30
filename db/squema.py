@@ -17,7 +17,7 @@ class ItemResponse(BaseModel):
     candidates: str = Form(None) # Melhores curriculos que se enquadram na vaga
     explainAbout: str = Form(None) # Justificativa sobre o prompt ou resumo de cada curriculo
 
-class FileUploadResponse(BaseModel):
+class ProcessRequestResponse(BaseModel):
     id: str
     filename: str
     original_filename: str

@@ -1,4 +1,5 @@
 from fastapi import FastAPI, HTTPException, UploadFile, File, Form
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from typing import List, Optional
 import uvicorn
@@ -31,17 +32,17 @@ def health_check():
     """Endpoint para verificar se a API está funcionando"""
     return {"status": "healthy", "message": "API está funcionando corretamente"}
 
-@app.post("/analyse/", response_model=ItemResponse, tags=["Items"])
-def create_item(
+@app.post("/analyse/", tags=["Items"])
+async def create_item(
     query: str = Form(..., description="String de consulta para processamento"),
-    request_id: str = Form(..., description="ID único da requisição (UUID)"),
     user_id: str = Form(..., description="ID do usuário solicitante"),
     files: List[UploadFile] = File(..., description="Lista de arquivos (PDF, JPG, PNG)")
     ):
     """Recebe multiplos documentos como PDFs ou Imagens (JPEG/PNG)"""
-    result = process_analyser.analyse(request_id, files, query, user_id)
     
-    return result
+    result = await process_analyser.analyse(files, query, user_id)
+
+    return JSONResponse(content=result)
 
 
 if __name__ == "__main__":
