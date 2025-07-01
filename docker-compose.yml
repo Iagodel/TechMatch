@@ -13,7 +13,17 @@ services:
       - .:/app
     environment:
       - MONGO_URI=mongodb://mongo:27017/curriculos
+      - NVIDIA_VISIBLE_DEVICES=all
     restart: unless-stopped
+    runtime: nvidia
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+
 
   mongo:
     image: mongo:latest

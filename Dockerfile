@@ -16,7 +16,7 @@ COPY . .
 # Copiar arquivo de requisitos
 COPY requirements.txt .
 RUN pip install --upgrade pip
-RUN pip install -r requirements.txt
+RUN pip install -r requirements.txt --no-cache-dir
 
 # Expor porta 8000
 EXPOSE 8000
