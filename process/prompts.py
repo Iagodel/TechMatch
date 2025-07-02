@@ -25,7 +25,7 @@ class PromptManager:
                 model="tiiuae/falcon-rw-1b ",
                 tokenizer="tiiuae/falcon-rw-1b ",
                 device=0,
-                max_length=1024,
+                max_length=1024*20,
                 do_sample=True,
                 temperature=0.3,
                 pad_token_id=50256
@@ -98,7 +98,7 @@ class PromptManager:
                 "document_type": doc.document_type.value,
                 "confidence": round(doc.confidence, 2),
                 "analysis": analysis_result,
-                "content_preview": content_preview[:200] + "..." if len(content_preview) > 200 else content_preview
+                "content_preview": content_preview[:200] + "..." if len(content_preview) > 200000 else content_preview
             }
         except Exception as e:
             logger.error(f"Erro ao analisar {doc.filename}: {e}")
@@ -174,7 +174,7 @@ Você é um especialista em análise de currículos
 Com base nas análises abaixo, gere uma resposta consolidada para a consulta: "{query}"
 
 [ANÁLISES]
-{chr(10).join([f"Documento {i+1}: {analysis[:200]}..." for i, analysis in enumerate(analyses)])}
+{chr(10).join([f"Documento {i+1}: {analysis}" for i, analysis in enumerate(analyses)])}
 
 [ANÁLISE CONSOLIDADA]"""
                 consolidated = await self._run_llm_generation(consolidation_prompt)
@@ -206,7 +206,7 @@ Com base nos resumos abaixo, forneça uma análise geral do conjunto de currícu
             logger.error(f"Erro na análise geral: {e}")
             return "Erro na análise geral"
 
-    def _prepare_content_for_llm(self, content: str, max_chars: int = 800) -> str:
+    def _prepare_content_for_llm(self, content: str, max_chars: int = 1500) -> str:
         if len(content) <= max_chars:
             return content
         truncated = content[:max_chars]
@@ -227,8 +227,8 @@ Com base nos resumos abaixo, forneça uma análise geral do conjunto de currícu
                 cleaned_lines.append(line)
                 seen_lines.add(line)
         result = '\n'.join(cleaned_lines)
-        if len(result) > 500:
-            result = result[:500] + "..."
+        #if len(result) > 500000:
+        #    result = result[:500000] + "..."
         return result if result else "Análise não disponível"
 
     def _basic_analysis_fallback(self, content: str, query: str) -> str:
@@ -243,7 +243,7 @@ Com base nos resumos abaixo, forneça uma análise geral do conjunto de currícu
             return "Documento com baixa relevância para a consulta. Poucas correspondências encontradas."
 
     def _basic_summary_fallback(self, content: str) -> str:
-        summary = content[:300]
-        if len(content) > 300:
-            summary += "..."
+        summary = content
+        #if len(content) > 300:
+        #    summary += "..."
         return f"Resumo básico: {summary}"

@@ -20,7 +20,6 @@ class DocumentProcessor:
     """Processador de documentos com OCR"""
     
     def __init__(self):
-        # Inicializar EasyOCR
         self.ocr_reader = None
         self.executor = ThreadPoolExecutor(max_workers=4)
         self._init_ocr()
@@ -28,7 +27,7 @@ class DocumentProcessor:
     def _init_ocr(self):
         """Inicializar EasyOCR com configurações otimizadas"""
         try:
-            # Usar português e inglês
+
             self.ocr_reader = easyocr.Reader(['pt', 'en'], gpu=True)
             logger.info("EasyOCR inicializado com sucesso")
         except Exception as e:
@@ -39,7 +38,6 @@ class DocumentProcessor:
         """Processar lista de documentos"""
         processed_docs = []
         
-        # Processar documentos em paralelo
         tasks = [self._process_single_document(file) for file in files]
         results = await asyncio.gather(*tasks, return_exceptions=True)
         
@@ -120,7 +118,7 @@ class DocumentProcessor:
         confidence_count = 0
         
         try:
-            # Abrir PDF da memória
+            
             pdf_document = fitz.open(stream=content, filetype="pdf")
             page_count = len(pdf_document)
             
@@ -131,13 +129,13 @@ class DocumentProcessor:
                 page_text = page.get_text()
                 
                 if page_text.strip():
-                    # Texto extraído diretamente
+                   
                     text_parts.append(page_text)
-                    total_confidence += 0.95  # Alta confiança para texto direto
+                    total_confidence += 0.95  
                     confidence_count += 1
                 else:
-                    # Usar OCR na página como imagem
-                    pix = page.get_pixmap(matrix=fitz.Matrix(2, 2))  # 2x zoom
+                   
+                    pix = page.get_pixmap(matrix=fitz.Matrix(2, 2))  
                     img_data = pix.tobytes("png")
                     
                     # Aplicar OCR
@@ -149,7 +147,6 @@ class DocumentProcessor:
             
             pdf_document.close()
             
-            # Calcular confiança média
             avg_confidence = total_confidence / confidence_count if confidence_count > 0 else 0.0
             
             return '\n\n'.join(text_parts), page_count, avg_confidence
@@ -188,7 +185,7 @@ class DocumentProcessor:
     def _apply_ocr_to_image_bytes(self, image_bytes: bytes) -> Tuple[str, float]:
         """Aplicar OCR em bytes de imagem"""
         try:
-            # Converter bytes para array numpy
+            
             nparr = np.frombuffer(image_bytes, np.uint8)
             image = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
             
@@ -196,25 +193,25 @@ class DocumentProcessor:
                 logger.error("Não foi possível decodificar a imagem")
                 return "", 0.0
             
-            # Pré-processamento da imagem para melhorar OCR
+            
             processed_image = self._preprocess_image(image)
             
-            # Aplicar OCR
+            
             results = self.ocr_reader.readtext(processed_image, detail=1)
             
-            # Extrair texto e calcular confiança média
+            
             text_parts = []
             confidences = []
             
             for (bbox, text, confidence) in results:
-                if confidence > 0.3:  # Filtrar resultados de baixa confiança
+                if confidence > 0.3: 
                     text_parts.append(text)
                     confidences.append(confidence)
             
-            # Calcular confiança média
+            
             avg_confidence = sum(confidences) / len(confidences) if confidences else 0.0
             
-            # Juntar texto
+            
             full_text = ' '.join(text_parts)
             
             return full_text, avg_confidence
@@ -225,14 +222,12 @@ class DocumentProcessor:
     
     def _preprocess_image(self, image: np.ndarray) -> np.ndarray:
         """Pré-processar imagem para melhorar OCR"""
-        try:
-            # Converter para escala de cinza
+        try:            
             if len(image.shape) == 3:
                 gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
             else:
                 gray = image
-            
-            # Redimensionar se muito pequena
+                       
             height, width = gray.shape
             if height < 300 or width < 300:
                 scale_factor = max(300/height, 300/width)
@@ -240,15 +235,12 @@ class DocumentProcessor:
                 new_height = int(height * scale_factor)
                 gray = cv2.resize(gray, (new_width, new_height), interpolation=cv2.INTER_CUBIC)
             
-            # Aplicar filtro de desfoque gaussiano para reduzir ruído
             gray = cv2.GaussianBlur(gray, (3, 3), 0)
             
-            # Aplicar threshold adaptativo
             processed = cv2.adaptiveThreshold(
                 gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 11, 2
             )
             
-            # Operação morfológica para melhorar a qualidade do texto
             kernel = np.ones((1, 1), np.uint8)
             processed = cv2.morphologyEx(processed, cv2.MORPH_CLOSE, kernel)
             
@@ -263,16 +255,12 @@ class DocumentProcessor:
         if not text:
             return ""
         
-        # Remover caracteres especiais desnecessários
         import re
-        
-        # Normalizar espaços em branco
+
         text = re.sub(r'\s+', ' ', text)
         
-        # Remover caracteres não imprimíveis
         text = ''.join(char for char in text if char.isprintable() or char.isspace())
         
-        # Remover linhas muito curtas (provavelmente ruído)
         lines = text.split('\n')
         cleaned_lines = [line.strip() for line in lines if len(line.strip()) > 2]
         
@@ -305,7 +293,7 @@ class DocumentProcessor:
     async def validate_file(self, file: UploadFile) -> Tuple[bool, str]:
         """Validar se arquivo é suportado"""
         try:
-            # Verificar tipo de conteúdo
+
             if file.content_type not in self.get_supported_formats():
                 return False, f"Tipo não suportado: {file.content_type}"
             

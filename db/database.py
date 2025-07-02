@@ -30,10 +30,10 @@ class DatabaseManager:
             
             self.client = AsyncIOMotorClient(
                 self.mongodb_url,
-                serverSelectionTimeoutMS=5000,  # 5 segundos timeout
-                connectTimeoutMS=10000,         # 10 segundos timeout
-                socketTimeoutMS=10000,          # 10 segundos timeout
-                maxPoolSize=50,                 # Pool de conexões
+                serverSelectionTimeoutMS=5000,
+                connectTimeoutMS=10000,
+                socketTimeoutMS=10000,
+                maxPoolSize=50,
                 retryWrites=True
             )
             
@@ -89,24 +89,44 @@ class DatabaseManager:
         try:
             # Converter para dict
             log_dict = log_entry.dict()
-            
-            # Garantir que timestamp seja datetime
-            if isinstance(log_dict['timestamp'], str):
-                log_dict['timestamp'] = datetime.fromisoformat(log_dict['timestamp'])
-            
-            # Inserir no banco
+
+            # Sanitizar o campo 'result'
+            def sanitize_result(result: Any) -> Any:
+                if isinstance(result, dict):
+                    sanitized = {}
+                    for k, v in result.items():
+                        if k in ("results", "summaries"):
+                            # Lista de documentos — remover campos sensíveis
+                            sanitized[k] = [
+                                {kk: vv for kk, vv in item.items() if kk not in ("content", "content_preview", "summary")}
+                                for item in v if isinstance(item, dict)
+                            ]
+                        elif isinstance(v, dict):
+                            sanitized[k] = sanitize_result(v)
+                        else:
+                            sanitized[k] = v
+                    return sanitized
+                return result
+
+            log_dict["result"] = sanitize_result(log_dict["result"])
+
+            # Garantir timestamp
+            if isinstance(log_dict["timestamp"], str):
+                log_dict["timestamp"] = datetime.fromisoformat(log_dict["timestamp"])
+
             result = await self.collection.insert_one(log_dict)
-            
+
             if result.inserted_id:
                 logger.info(f"Log salvo com sucesso: {log_entry.request_id}")
                 return True
             else:
                 logger.error(f"Falha ao salvar log: {log_entry.request_id}")
                 return False
-                
+
         except Exception as e:
             logger.error(f"Erro ao salvar log: {e}")
             return False
+
     
     async def get_log(self, request_id: str) -> Optional[Dict[str, Any]]:
         """Buscar log por request_id"""
